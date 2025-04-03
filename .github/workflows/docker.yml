@@ -17,6 +17,9 @@ concurrency:
 
 jobs:
   docker:
+    strategy:
+      matrix:
+        service: [config_pull, management_server]
     runs-on: ubuntu-latest
 
     steps:
@@ -33,4 +36,5 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.ref_name }}
+          build-args: GO_CMD=${{ matrix.service }}
