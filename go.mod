@@ -7,6 +7,10 @@ require (
 	github.com/go-co-op/gocron v1.37.0
 	github.com/joho/godotenv v1.5.1
 	github.com/sirupsen/logrus v1.9.3
+	github.com/swaggest/openapi-go v0.2.57
+	github.com/swaggest/rest v0.2.73
+	github.com/swaggest/swgui v1.8.2
+	github.com/swaggest/usecase v1.3.1
 	gorm.io/driver/postgres v1.5.11
 	gorm.io/gorm v1.25.12
 )
@@ -17,6 +21,7 @@ require (
 	github.com/caddyserver/zerossl v0.1.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
+	github.com/go-chi/chi/v5 v5.2.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20231212022811-ec68065c825e // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -38,6 +43,11 @@ require (
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.48.2 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/santhosh-tekuri/jsonschema/v3 v3.1.0 // indirect
+	github.com/swaggest/form/v5 v5.1.1 // indirect
+	github.com/swaggest/jsonschema-go v0.3.73 // indirect
+	github.com/swaggest/refl v1.3.1 // indirect
+	github.com/vearutop/statigz v1.4.0 // indirect
 	github.com/zeebo/blake3 v0.2.4 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
@@ -55,4 +65,5 @@ require (
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
