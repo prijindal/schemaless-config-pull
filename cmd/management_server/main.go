@@ -16,19 +16,22 @@ import (
 	"github.com/swaggest/usecase/status"
 )
 
-func main() {
-	s := web.NewService(openapi31.NewReflector())
+type emptyInput struct{}
 
-	// Init API documentation schema.
-	s.OpenAPISchema().SetTitle("Basic Example")
-	s.OpenAPISchema().SetDescription("This app showcases a trivial REST API.")
-	s.OpenAPISchema().SetVersion("v1.2.3")
+func getHealth() usecase.Interactor {
 
-	// Setup middlewares.
-	s.Wrap(
-		gzip.Middleware, // Response compression with support for direct gzip pass through.
-	)
+	type healthOutput struct {
+		Healthy bool `json:"healthy"`
+	}
+	u := usecase.NewInteractor(func(ctx context.Context, input emptyInput, output *healthOutput) error {
+		output.Healthy = true
+		return nil
+	})
+	u.SetTags("health")
+	return u
+}
 
+func getHello() usecase.Interactor {
 	// Declare input port type.
 	type helloInput struct {
 		Locale string `query:"locale" default:"en-US" pattern:"^[a-z]{2}-[A-Z]{2}$" enum:"ru-RU,en-US"`
@@ -53,8 +56,7 @@ func main() {
 		"ru-RU": "Привет, %s!",
 	}
 
-	// Add use case handler to router.
-	s.Get("/hello/{name}", usecase.NewInteractor(func(ctx context.Context, input helloInput, output *helloOutput) error {
+	u := usecase.NewInteractor(func(ctx context.Context, input helloInput, output *helloOutput) error {
 		msg, available := messages[input.Locale]
 		if !available {
 			return status.Wrap(errors.New("unknown locale"), status.InvalidArgument)
@@ -64,7 +66,28 @@ func main() {
 		output.Now = time.Now()
 
 		return nil
-	}))
+	})
+	u.SetTags("test")
+	return u
+}
+
+func main() {
+	s := web.NewService(openapi31.NewReflector())
+
+	// Init API documentation schema.
+	s.OpenAPISchema().SetTitle("Basic Example")
+	s.OpenAPISchema().SetDescription("This app showcases a trivial REST API.")
+	s.OpenAPISchema().SetVersion("v1.2.3")
+
+	// Setup middlewares.
+	s.Wrap(
+		gzip.Middleware, // Response compression with support for direct gzip pass through.
+	)
+
+	s.Get("/api/health", getHealth())
+
+	// Add use case handler to router.
+	s.Get("/hello/{name}", getHello())
 
 	// Swagger UI endpoint at /docs.
 	s.Docs("/docs", swgui.New)
