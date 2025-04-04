@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY *.go ./
 COPY cmd/ ./cmd/
-COPY pkg/ ./cmd/
+COPY pkg/ ./pkg/
 
 ARG GO_CMD TARGETOS TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /$GO_CMD cmd/$GO_CMD/main.go
