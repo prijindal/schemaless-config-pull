@@ -40,9 +40,22 @@ func isInitialized(db *gorm.DB) usecase.Interactor {
 }
 
 func initializeAdmin(db *gorm.DB) usecase.Interactor {
-
 	u := usecase.NewInteractor(func(ctx context.Context, input repository.ManagementUserLoginBody, output *repository.ManagementUserLoginResponse) error {
 		body, err := repository.InitailizeWithUser(db, input)
+		if err != nil {
+			return status.Wrap(err, status.NotFound)
+		}
+		output.ID = body.ID
+		output.IsAdmin = body.IsAdmin
+		return nil
+	})
+	u.SetTags("Management Auth")
+	return u
+}
+
+func registerUser(db *gorm.DB) usecase.Interactor {
+	u := usecase.NewInteractor(func(ctx context.Context, input repository.ManagementUserLoginBody, output *repository.ManagementUserLoginResponse) error {
+		body, err := repository.RegisterUser(db, input)
 		if err != nil {
 			return status.Wrap(err, status.NotFound)
 		}
@@ -133,6 +146,7 @@ func main() {
 
 	s.Get("/api/auth/initialized", isInitialized(db))
 	s.Post("/api/auth/initialize", initializeAdmin(db))
+	s.Post("/api/auth/register", registerUser(db))
 
 	// Add use case handler to router.
 	s.Get("/hello/{name}", getHello())
