@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"schemaless/config-pull/pkg/models"
 	"syscall"
 	"time"
 
@@ -24,17 +25,6 @@ import (
 
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 )
-
-type ApplicationDomain struct {
-	ID            string    `gorm:"column:id;type:uuid;default:uuid_generate_v4()"`
-	CreatedAt     time.Time `gorm:"column:created_at;type:timestamptz"`
-	UpdatedAt     time.Time `gorm:"column:updated_at;type:timestamptz"`
-	DomainName    string    `gorm:"column:domain_name"`
-	ApplicationId string    `gorm:"column:application_id"`
-	OwnerId       string    `gorm:"column:owner_id"`
-	SoaEmail      string    `gorm:"column:soa_email"`
-	Status        string    `gorm:"column:status"`
-}
 
 func newGormConnectionFromString() (*gorm.DB, error) {
 	postgresUri := os.Getenv("POSTGRES_URI")
@@ -107,7 +97,7 @@ func reload() (*int, error) {
 		return nil, err
 	}
 	// Fetch list of domains
-	var results []ApplicationDomain
+	var results []models.ApplicationDomain
 	tx := gormdb.Table("application_domains").Where("status = ?", "ACTIVATED").Find(&results)
 	if tx.Error != nil {
 		log.Error(tx.Error)
