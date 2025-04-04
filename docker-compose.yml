@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: "postgres:latest"
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: schemaless
+      POSTGRES_DB: schemaless
+      POSTGRES_PASSWORD: schemaless

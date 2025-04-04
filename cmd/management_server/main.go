@@ -4,9 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
+	"schemaless/config-pull/pkg/database"
+	"schemaless/config-pull/pkg/repository"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 
 	"github.com/swaggest/openapi-go/openapi31"
 	"github.com/swaggest/rest/response/gzip"
@@ -17,6 +21,38 @@ import (
 )
 
 type emptyInput struct{}
+
+func isInitialized(db *gorm.DB) usecase.Interactor {
+	type isInitializedOutput struct {
+		Initialized bool `json:"initialized"`
+	}
+
+	u := usecase.NewInteractor(func(ctx context.Context, input emptyInput, output *isInitializedOutput) error {
+		initialized, err := repository.IsInitialized(db)
+		if err != nil {
+			return status.Wrap(err, status.NotFound)
+		}
+		output.Initialized = initialized
+		return nil
+	})
+	u.SetTags("Management Auth")
+	return u
+}
+
+func initializeAdmin(db *gorm.DB) usecase.Interactor {
+
+	u := usecase.NewInteractor(func(ctx context.Context, input repository.ManagementUserLoginBody, output *repository.ManagementUserLoginResponse) error {
+		body, err := repository.InitailizeWithUser(db, input)
+		if err != nil {
+			return status.Wrap(err, status.NotFound)
+		}
+		output.ID = body.ID
+		output.IsAdmin = body.IsAdmin
+		return nil
+	})
+	u.SetTags("Management Auth")
+	return u
+}
 
 func getHealth() usecase.Interactor {
 
@@ -72,6 +108,15 @@ func getHello() usecase.Interactor {
 }
 
 func main() {
+	db, err := database.NewGormConnectionFromString()
+	if err != nil {
+		panic(err)
+	}
+	err = database.PerformMigration(db)
+	if err != nil {
+		log.Error(err)
+	}
+
 	s := web.NewService(openapi31.NewReflector())
 
 	// Init API documentation schema.
@@ -85,6 +130,9 @@ func main() {
 	)
 
 	s.Get("/api/health", getHealth())
+
+	s.Get("/api/auth/initialized", isInitialized(db))
+	s.Post("/api/auth/initialize", initializeAdmin(db))
 
 	// Add use case handler to router.
 	s.Get("/hello/{name}", getHello())
