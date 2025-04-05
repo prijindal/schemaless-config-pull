@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type ManagementUserRepository struct {
+	DB *gorm.DB
+}
+
 type ManagementUserLoginBody struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -20,17 +24,17 @@ type ManagementUserLoginResponse struct {
 	IsAdmin bool   `json:"is_admin"`
 }
 
-func IsInitialized(db *gorm.DB) (bool, error) {
+func (r *ManagementUserRepository) IsInitialized() (bool, error) {
 	var users []models.ManagementUser
-	tx := db.Where(&models.ManagementUser{IsAdmin: true}).Limit(1).Find(&users)
+	tx := r.DB.Where(&models.ManagementUser{IsAdmin: true}).Limit(1).Find(&users)
 	if tx.Error != nil {
 		return false, tx.Error
 	}
 	return len(users) == 1, nil
 }
 
-func InitailizeWithUser(db *gorm.DB, input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
-	initialized, err := IsInitialized(db)
+func (r *ManagementUserRepository) InitailizeWithUser(input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
+	initialized, err := r.IsInitialized()
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +57,7 @@ func InitailizeWithUser(db *gorm.DB, input ManagementUserLoginBody) (*Management
 		},
 		IsAdmin: true,
 	}
-	tx := db.Create(&user)
+	tx := r.DB.Create(&user)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
@@ -63,9 +67,9 @@ func InitailizeWithUser(db *gorm.DB, input ManagementUserLoginBody) (*Management
 	}, nil
 }
 
-func GetUserWithEmail(db *gorm.DB, email string) (*models.ManagementUser, bool, error) {
+func (r *ManagementUserRepository) GetUserWithEmail(email string) (*models.ManagementUser, bool, error) {
 	var users []models.ManagementUser
-	tx := db.Where(&models.ManagementUser{UserBaseModel: models.UserBaseModel{Email: email}}).Limit(1).Find(&users)
+	tx := r.DB.Where(&models.ManagementUser{UserBaseModel: models.UserBaseModel{Email: email}}).Limit(1).Find(&users)
 	if tx.Error != nil {
 		return nil, false, tx.Error
 	}
@@ -75,8 +79,8 @@ func GetUserWithEmail(db *gorm.DB, email string) (*models.ManagementUser, bool, 
 	return &users[0], true, nil
 }
 
-func RegisterUser(db *gorm.DB, input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
-	initialized, err := IsInitialized(db)
+func (r *ManagementUserRepository) RegisterUser(input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
+	initialized, err := r.IsInitialized()
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +91,7 @@ func RegisterUser(db *gorm.DB, input ManagementUserLoginBody) (*ManagementUserLo
 	if err != nil {
 		return nil, err
 	}
-	_, exists, err := GetUserWithEmail(db, input.Email)
+	_, exists, err := r.GetUserWithEmail(input.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,7 @@ func RegisterUser(db *gorm.DB, input ManagementUserLoginBody) (*ManagementUserLo
 		},
 		IsAdmin: false,
 	}
-	tx := db.Create(&user)
+	tx := r.DB.Create(&user)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
