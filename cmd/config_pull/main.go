@@ -10,6 +10,7 @@ import (
 	"schemaless/config-pull/pkg/config"
 	"schemaless/config-pull/pkg/database"
 	"schemaless/config-pull/pkg/models"
+	"schemaless/config-pull/pkg/repository"
 	"syscall"
 	"time"
 
@@ -58,23 +59,21 @@ func loadConfigToCaddy(caddyContent string) error {
 
 func loadApplications() ([]models.ApplicationDomain, error) {
 	// Connect to postgres using env variable (POSTGRES_HOST can be a domain and will be resolved)
-	gormdb, err := database.NewGormConnectionFromString()
+	db_manager := database.DatabaseManager{}
+	err := db_manager.NewGormConnectionFromString()
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	db, err := gormdb.DB()
-	if err != nil {
-		log.Error(err)
-		return nil, err
+	defer db_manager.Close()
+	applicationDomainRepository := repository.ApplicationDomainRepository{
+		DatabaseManager: db_manager,
 	}
-	defer db.Close()
+	results, err := applicationDomainRepository.ListValidApplicationDomains()
 	// Fetch list of domains
-	var results []models.ApplicationDomain
-	tx := gormdb.Table("application_domains").Where("status = ?", "ACTIVATED").Find(&results)
-	if tx.Error != nil {
-		log.Error(tx.Error)
-		return nil, tx.Error
+	if err != nil {
+		log.Error(err)
+		return nil, err
 	}
 
 	return results, nil

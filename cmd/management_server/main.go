@@ -15,11 +15,12 @@ import (
 )
 
 func main() {
-	db, err := database.NewGormConnectionFromString()
+	db_manager := database.DatabaseManager{}
+	err := db_manager.NewGormConnectionFromString()
 	if err != nil {
 		panic(err)
 	}
-	err = database.PerformMigration(db)
+	err = db_manager.PerformMigration()
 	if err != nil {
 		log.Error(err)
 	}
@@ -36,9 +37,9 @@ func main() {
 		gzip.Middleware, // Response compression with support for direct gzip pass through.
 	)
 
-	managementUserRepository := repository.ManagementUserRepository{DB: db}
+	managementUserRepository := repository.ManagementUserRepository{DatabaseManager: db_manager}
 	authController := controller.AuthController{ManagementUserRepository: managementUserRepository}
-	healthController := controller.HealthController{DB: db}
+	healthController := controller.HealthController{DatabaseManager: db_manager}
 	authController.RegisterRoutes(s)
 	healthController.RegisterRoutes(s)
 

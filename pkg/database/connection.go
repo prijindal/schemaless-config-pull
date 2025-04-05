@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"schemaless/config-pull/pkg/config"
+	"schemaless/config-pull/pkg/models"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -11,11 +12,15 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-func NewGormConnectionFromString() (*gorm.DB, error) {
+type DatabaseManager struct {
+	DB *gorm.DB
+}
+
+func (m *DatabaseManager) NewGormConnectionFromString() error {
 	postgresUri := config.Cfg.PostgresUri
 	sqlDB, err := sql.Open("pgx", postgresUri)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	sqlDB.SetMaxIdleConns(1)
 	sqlDB.SetMaxOpenConns(5)
@@ -34,5 +39,34 @@ func NewGormConnectionFromString() (*gorm.DB, error) {
 		SkipDefaultTransaction: true,
 		Logger:                 newLogger,
 	})
-	return gormDB, err
+	if err != nil {
+		return err
+	}
+	m.DB = gormDB
+	return nil
+
+}
+
+func (m *DatabaseManager) PerformMigration() error {
+	log.Info("Performing DB Migration")
+	err := m.DB.AutoMigrate(
+		&models.ManagementUser{},
+		&models.Application{},
+		&models.ApplicationUser{},
+		&models.ApplicationDomain{},
+		&models.EntityHistory{},
+	)
+	return err
+}
+
+func (m *DatabaseManager) Close() error {
+	db, err := m.DB.DB()
+	if err != nil {
+		return err
+	}
+	err = db.Close()
+	if err != nil {
+		return err
+	}
+	return nil
 }

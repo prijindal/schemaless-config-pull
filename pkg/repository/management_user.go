@@ -3,15 +3,15 @@ package repository
 
 import (
 	"errors"
+	"schemaless/config-pull/pkg/database"
 	"schemaless/config-pull/pkg/models"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type ManagementUserRepository struct {
-	DB *gorm.DB
+	database.DatabaseManager
 }
 
 type ManagementUserLoginBody struct {
@@ -19,12 +19,16 @@ type ManagementUserLoginBody struct {
 	Password string `json:"password"`
 }
 
-type ManagementUserLoginResponse struct {
+type ManagementUserRegisterResponse struct {
 	ID      string `json:"id"`
 	IsAdmin bool   `json:"is_admin"`
 }
 
-func (r *ManagementUserRepository) IsInitialized() (bool, error) {
+type ManagementUserLoginResponse struct {
+	Token string `json:"token"`
+}
+
+func (r ManagementUserRepository) IsInitialized() (bool, error) {
 	var users []models.ManagementUser
 	tx := r.DB.Where(&models.ManagementUser{IsAdmin: true}).Limit(1).Find(&users)
 	if tx.Error != nil {
@@ -33,7 +37,7 @@ func (r *ManagementUserRepository) IsInitialized() (bool, error) {
 	return len(users) == 1, nil
 }
 
-func (r *ManagementUserRepository) InitailizeWithUser(input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
+func (r ManagementUserRepository) InitailizeWithUser(input ManagementUserLoginBody) (*ManagementUserRegisterResponse, error) {
 	initialized, err := r.IsInitialized()
 	if err != nil {
 		return nil, err
@@ -61,13 +65,13 @@ func (r *ManagementUserRepository) InitailizeWithUser(input ManagementUserLoginB
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
-	return &ManagementUserLoginResponse{
+	return &ManagementUserRegisterResponse{
 		ID:      user.ID,
 		IsAdmin: user.IsAdmin,
 	}, nil
 }
 
-func (r *ManagementUserRepository) GetUserWithEmail(email string) (*models.ManagementUser, bool, error) {
+func (r ManagementUserRepository) GetUserWithEmail(email string) (*models.ManagementUser, bool, error) {
 	var users []models.ManagementUser
 	tx := r.DB.Where(&models.ManagementUser{UserBaseModel: models.UserBaseModel{Email: email}}).Limit(1).Find(&users)
 	if tx.Error != nil {
@@ -79,7 +83,7 @@ func (r *ManagementUserRepository) GetUserWithEmail(email string) (*models.Manag
 	return &users[0], true, nil
 }
 
-func (r *ManagementUserRepository) RegisterUser(input ManagementUserLoginBody) (*ManagementUserLoginResponse, error) {
+func (r ManagementUserRepository) RegisterUser(input ManagementUserLoginBody) (*ManagementUserRegisterResponse, error) {
 	initialized, err := r.IsInitialized()
 	if err != nil {
 		return nil, err
@@ -114,8 +118,27 @@ func (r *ManagementUserRepository) RegisterUser(input ManagementUserLoginBody) (
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
-	return &ManagementUserLoginResponse{
+	return &ManagementUserRegisterResponse{
 		ID:      user.ID,
 		IsAdmin: user.IsAdmin,
 	}, nil
+}
+
+func (r ManagementUserRepository) LoginUser(input ManagementUserLoginBody) (string, error) {
+	user, exists, err := r.GetUserWithEmail(input.Email)
+	if err != nil {
+		return "", err
+	}
+	if !exists {
+		return "", errors.New("uusername or password is incorrect")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.BcryptHash), []byte(input.Password))
+	if err != nil {
+		return "", err
+	}
+	if user.Status != models.UserActivated {
+		return "", errors.New("user is deactivated")
+	}
+	// TODO: Generate token
+	return "", nil
 }
